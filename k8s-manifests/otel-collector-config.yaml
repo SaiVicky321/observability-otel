@@ -29,8 +29,7 @@ data:
             - k8s.container.image.name
             - k8s.container.image.tag
         filter:
-          namespace:
-            - internal-app
+          namespace: internal-app
 
 
     exporters:

@@ -17,7 +17,7 @@ data:
         attributes:
           - action: insert
             key: gcp.project.name
-            value: prj-cams-playground-devopspoc
+            value: gke-demo
       k8sattributes:
         auth_type: serviceAccount
         extract:
@@ -28,14 +28,14 @@ data:
             - k8s.container.name
             - k8s.container.image.name
             - k8s.container.image.tag
-          filter:
-            namespace:
-              - internal-app
+        filter:
+          namespace:
+            - internal-app
 
 
     exporters:
       googlecloud:
-        project: 707221028368 #prj-cams-playground-devopspoc
+        project: "gke-demo-466215" #prj-cams-playground-devopspoc
         metric:
           prefix: "custom.googleapis.com"
         log:

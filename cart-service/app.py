@@ -20,13 +20,14 @@ from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExp
 # Logging
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.sdk._logs import LoggerProvider
-from opentelemetry.sdk._logs import BatchLogProcessor
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs import LoggingHandler
 
 # Instrumentation
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+
 
 # Context
 from opentelemetry.trace import get_current_span
@@ -74,8 +75,10 @@ set_logger_provider(log_provider)
 
 # Export logs to OTEL Collector
 log_exporter = OTLPLogExporter(endpoint=f"http://{os.environ['NODE_IP']}:4318/v1/logs")
-log_processor = BatchLogProcessor(log_exporter)
-log_provider.add_log_processor(log_processor)
+# log_processor = BatchLogProcessor(log_exporter)
+# log_provider.add_log_processor(log_processor)
+log_processor = BatchLogRecordProcessor(log_exporter)  # ✅ Updated name
+log_provider.add_log_record_processor(log_processor)   # ✅ method name also
 
 # Bridge Python logging -> OpenTelemetry logs
 otel_handler = LoggingHandler(level=logging.NOTSET, logger_provider=log_provider)

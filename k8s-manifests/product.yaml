@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: internal-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+      - name: product-service
+        image: asia-south1-docker.pkg.dev/gke-demo-466215/docker-repo-as1/observability-demo_product-service:latest
+        ports:
+        - containerPort: 5001
+        env:
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: internal-app
+spec:
+  selector:
+    app: product-service
+  ports:
+    - protocol: TCP
+      port: 5001
+      targetPort: 5001
+  type: ClusterIP

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart-service
+  namespace: internal-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cart-service
+  template:
+    metadata:
+      labels:
+        app: cart-service
+    spec:
+      containers:
+      - name: cart-service
+        image: asia-south1-docker.pkg.dev/gke-demo-466215/docker-repo-as1/observability-demo_cart-service:latest
+        ports:
+        - containerPort: 5002
+        env:
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service
+  namespace: internal-app
+spec:
+  selector:
+    app: cart-service
+  ports:
+    - protocol: TCP
+      port: 5002
+      targetPort: 5002
+  type: ClusterIP

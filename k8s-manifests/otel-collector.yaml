@@ -1,0 +1,89 @@
+# 1. Namespace for OpenTelemetry Collector
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opentelemetry
+
+---
+
+# 2. Kubernetes ServiceAccount with GSA Binding (Workload Identity)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+  annotations:
+    iam.gke.io/gcp-service-account: sa-playground-poc-devops@prj-cams-playground-devopspoc.iam.gserviceaccount.com
+
+---
+
+# 3. Kubernetes RBAC for k8sattributes processor
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "namespaces"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-collector
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: opentelemetry
+
+---
+
+# 4. DaemonSet for OTEL Collector (no service, no configMap)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+  labels:
+    app: otel-collector
+spec:
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      serviceAccountName: otel-collector
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:latest
+          args: ["--config=/conf/otel-config.yaml"]
+          ports:
+            - containerPort: 4317
+              hostPort: 4317
+              name: otlp-grpc
+            - containerPort: 4318
+              hostPort: 4318
+              name: otlp-http
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+
+# To allow your otel-collector pod to use sa-playground-poc-devops@..., 
+#you must explicitly bind the KSA to the GSA via IAM.
+#use roles/iam.workloadIdentityUser
+# For data use roles/logging.logWriter, roles/monitoring.metricWriter, roles/cloudtrace.agent

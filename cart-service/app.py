@@ -2,21 +2,34 @@ from flask import Flask, request, jsonify
 import time
 import logging
 import os
+
+
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.resources import Resource
+
+# Tracing
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+# Metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
-from opentelemetry.trace import get_current_span
-from opentelemetry.sdk.trace import BatchSpanProcessor
+
+# Logging
 from opentelemetry._logs import set_logger_provider
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs.export import BatchLogProcessor
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+from opentelemetry.sdk._logs import LoggingHandler
+
+# Instrumentation
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+
+# Context
+from opentelemetry.trace import get_current_span
 
 # Resource attributes for logs/metrics/traces
 resource = Resource(attributes={

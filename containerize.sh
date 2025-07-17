@@ -2,9 +2,9 @@
 
 # Set variables
 REGION="asia-south1"
-PROJECT_ID="prj-cams-playground-devopspoc"
-REPO_NAME="artreg-playground-poc-containerimages-as1"
-BASE_IMAGE_NAME="observability-demo"
+PROJECT_ID="gke-demo-466215" # project-id
+REPO_NAME="docker-repo-as1" # repo name
+BASE_IMAGE_NAME="observability-demo" # base image name
 
 # List of service folders
 SERVICES=("frontend" "cart-service" "order-service" "product-service")

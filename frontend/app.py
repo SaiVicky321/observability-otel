@@ -27,6 +27,8 @@ from opentelemetry.sdk._logs import LoggingHandler
 # Instrumentation
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+
 
 # Context
 from opentelemetry.trace import get_current_span

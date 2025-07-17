@@ -45,14 +45,14 @@ resource = Resource(attributes={
 trace.set_tracer_provider(TracerProvider(resource=resource))
 tracer = trace.get_tracer_provider().get_tracer(__name__)
 trace.get_tracer_provider().add_span_processor(
-    BatchSpanProcessor(OTLPSpanExporter(endpoint=f"http://{os.environ['NODE_IP']}:4318/v1/traces"))
+    BatchSpanProcessor(OTLPSpanExporter(endpoint= "http://localhost:4318/v1/traces")) #f"http://{os.environ['NODE_IP']}:4318/v1/traces"))
 )
 
 # Set up metrics
 metrics.set_meter_provider(
     MeterProvider(
         resource=resource,
-        metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=f"http://{os.environ['NODE_IP']}:4318/v1/metrics"))]
+        metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter(endpoint="http://localhost:4318/v1/metrics"))] #f"http://{os.environ['NODE_IP']}:4318/v1/metrics"))]
     )
 )
 meter = metrics.get_meter(__name__)
@@ -77,7 +77,7 @@ log_provider = LoggerProvider(resource=resource)
 set_logger_provider(log_provider)
 
 # Export logs to OTEL Collector
-log_exporter = OTLPLogExporter(endpoint=f"http://{os.environ['NODE_IP']}:4318/v1/logs")
+log_exporter = OTLPLogExporter(endpoint= "http://localhost:4318/v1/logs") #f"http://{os.environ['NODE_IP']}:4318/v1/logs")
 log_processor = BatchLogRecordProcessor(log_exporter)  # ✅ Updated name
 log_provider.add_log_record_processor(log_processor)   # ✅ method name also
 
@@ -215,7 +215,6 @@ def place_order():
     finally:
         request_latency.record(time.time() - start_time)
         request_counter.add(1)
-        requests.delete("http://cart-service:5002/cart")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

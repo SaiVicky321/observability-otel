@@ -87,3 +87,18 @@ spec:
 #you must explicitly bind the KSA to the GSA via IAM.
 #use roles/iam.workloadIdentityUser
 # For data use roles/logging.logWriter, roles/monitoring.metricWriter, roles/cloudtrace.agent
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otlp-daemon-service
+  namespace: opentelemetry
+spec:
+  type: ClusterIP
+  selector:
+    app: otel-collector
+  ports:
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318

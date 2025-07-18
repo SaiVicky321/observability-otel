@@ -141,7 +141,7 @@ data:
 
     exporters:
       googlecloud:
-        project: "observability-project-466314" #prj-cams-playground-devopspoc
+        project: "observability-project-466314" # Ensure this is your correct project ID
         metric:
           prefix: "custom.googleapis.com"
         log:
@@ -149,18 +149,20 @@ data:
         trace:
           attribute_mappings: []  # default
         user_agent: "otel-collector"
+      debug: # <--- ADD THIS
+        verbosity: detailed # <--- ADD THIS (options: basic, normal, detailed)
 
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch, resource, k8sattributes]
-          exporters: [googlecloud]
+          exporters: [googlecloud, debug]
         metrics:
           receivers: [otlp]
           processors: [batch, resource, k8sattributes]
-          exporters: [googlecloud]
+          exporters: [googlecloud, debug]
         logs:
           receivers: [otlp]
           processors: [batch, resource, k8sattributes]
-          exporters: [googlecloud]
+          exporters: [googlecloud, debug]

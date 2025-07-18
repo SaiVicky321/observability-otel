@@ -13,7 +13,7 @@ metadata:
   name: otel-collector
   namespace: opentelemetry
   annotations:
-    iam.gke.io/gcp-service-account: sa-playground-poc-devops@prj-cams-playground-devopspoc.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: gke-observability-sa@observability-project-466314.iam.gserviceaccount.com
 
 ---
 

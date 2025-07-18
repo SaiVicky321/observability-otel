@@ -150,5 +150,36 @@ def add_to_cart():
         request_counter.add(1)
         request_latency.record(time.time() - start_time)
 
+@app.route("/cart", methods=["DELETE"])
+def clear_cart():
+    start_time = time.time()
+    span = get_current_span()
+    try:
+        CART.clear()
+        logger.info("Cleared cart contents", extra={
+            "http.method": "DELETE",
+            "http.status_code": 200,
+            "trace_id": format(span.get_span_context().trace_id, 'x'),
+            "span_id": format(span.get_span_context().span_id, 'x'),
+            "service.name": "cart-service",
+            "environment": "dev"
+        })
+        return jsonify({"message": "Cart cleared"}), 200
+    except Exception as e:
+        logger.error("Failed to clear cart", exc_info=True, extra={
+            "http.method": "DELETE",
+            "http.status_code": 500,
+            "error.message": str(e),
+            "trace_id": format(span.get_span_context().trace_id, 'x'),
+            "span_id": format(span.get_span_context().span_id, 'x'),
+            "service.name": "cart-service",
+            "environment": "dev"
+        })
+        return "Internal Server Error", 500
+    finally:
+        request_counter.add(1)
+        request_latency.record(time.time() - start_time)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)

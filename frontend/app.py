@@ -190,6 +190,11 @@ def place_order():
         response = requests.post("http://order-service:5003/orders", json=cart)
         response.raise_for_status()
 
+        # Clear the cart after order is placed
+        clear_cart_response = requests.delete("http://cart-service:5002/cart")
+        clear_cart_response.raise_for_status()
+
+
         logger.info("Order placed", extra={
             "http.method": "POST",
             "http.status_code": response.status_code,

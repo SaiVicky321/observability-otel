@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: asia-south1-docker.pkg.dev/gke-demo-466215/docker-repo-as1/observability-demo_frontend:latest
+        image: asia-south1-docker.pkg.dev/observability-project-466314/observability-images/observability-demo_frontend:latest
         ports:
         - containerPort: 5000
         env:

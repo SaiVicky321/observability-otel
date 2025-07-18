@@ -86,8 +86,6 @@ otel_handler = LoggingHandler(level=logging.NOTSET, logger_provider=log_provider
 logging.getLogger().addHandler(otel_handler)
 
 app = Flask(__name__)
-FlaskInstrumentor().instrument_app(app)
-RequestsInstrumentor().instrument()
 
 TEMPLATE = """
 <h1>Products</h1>

@@ -86,7 +86,6 @@ logging.getLogger().addHandler(otel_handler)
 
 # Flask app
 app = Flask(__name__)
-FlaskInstrumentor().instrument_app(app)
 
 # In-memory cart store
 CART = []

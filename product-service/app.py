@@ -76,7 +76,6 @@ logging.getLogger().addHandler(otel_handler)
 
 # --- Flask Setup ---
 app = Flask(__name__)
-FlaskInstrumentor().instrument_app(app)
 
 PRODUCTS = [
     {"id": 1, "name": "Laptop", "price": 1000},

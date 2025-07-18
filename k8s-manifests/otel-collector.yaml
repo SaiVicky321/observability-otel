@@ -126,7 +126,7 @@ data:
         attributes:
           - action: insert
             key: gcp.project.name
-            value: gke-demo
+            value: observability-project
       k8sattributes:
         auth_type: serviceAccount
         extract:
@@ -141,7 +141,7 @@ data:
 
     exporters:
       googlecloud:
-        project: "gke-demo-466215" #prj-cams-playground-devopspoc
+        project: "observability-project-466314" #prj-cams-playground-devopspoc
         metric:
           prefix: "custom.googleapis.com"
         log:

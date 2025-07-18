@@ -25,12 +25,14 @@ from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs import LoggingHandler
 
 # Instrumentation
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
+# from opentelemetry.instrumentation.flask import FlaskInstrumentor # Removed for manual instrumentation example
+# from opentelemetry.instrumentation.requests import RequestsInstrumentor # Not applicable for this service
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 
 # Context
-from opentelemetry.trace import get_current_span
+from opentelemetry.trace import get_current_span, SpanKind
+from opentelemetry.propagate import extract, inject # extract is important for incoming requests
 
 # --- OpenTelemetry Setup ---
 resource = Resource(attributes={
@@ -58,7 +60,7 @@ request_latency = meter.create_histogram("http.server.request.duration", unit="s
 
 # Logging setup
 LoggingInstrumentor().instrument(set_logging_format=True)
-logger = logging.getLogger("frontend")
+logger = logging.getLogger("order-service") # Changed logger name for clarity
 logging.basicConfig(level=logging.INFO)
 
 # Set up OpenTelemetry logger provider
@@ -67,8 +69,8 @@ set_logger_provider(log_provider)
 
 # Export logs to OTEL Collector
 log_exporter = OTLPLogExporter(endpoint="http://otlp-daemon-service.opentelemetry.svc.cluster.local:4318/v1/logs")
-log_processor = BatchLogRecordProcessor(log_exporter)  # ✅ Updated name
-log_provider.add_log_record_processor(log_processor)   # ✅ method name also
+log_processor = BatchLogRecordProcessor(log_exporter)
+log_provider.add_log_record_processor(log_processor)
 
 # Bridge Python logging -> OpenTelemetry logs
 otel_handler = LoggingHandler(level=logging.NOTSET, logger_provider=log_provider)
@@ -82,62 +84,70 @@ ORDERS = []
 @app.route("/orders", methods=["POST"])
 def create_order():
     start = time.time()
-    span = get_current_span()
-    try:
-        order = request.json
-        ORDERS.append(order)
-        logger.info("Order created", extra={
-            "http.method": "POST",
-            "http.status_code": 201,
-            "trace_id": format(span.get_span_context().trace_id, 'x'),
-            "span_id": format(span.get_span_context().span_id, 'x'),
-            "service.name": "order-service",
-            "environment": "dev"
-        })
-        return jsonify({"message": "Order placed"}), 201
-    except Exception as e:
-        logger.error("Failed to create order", exc_info=True, extra={
-            "http.method": "POST",
-            "http.status_code": 500,
-            "error.message": str(e),
-            "trace_id": format(span.get_span_context().trace_id, 'x'),
-            "span_id": format(span.get_span_context().span_id, 'x'),
-            "service.name": "order-service",
-            "environment": "dev"
-        })
-        return "Internal Server Error", 500
-    finally:
-        request_counter.add(1)
-        request_latency.record(time.time() - start)
+    # Extract context from incoming request headers
+    carrier = request.headers
+    ctx = extract(carrier)
+    # Manually start a span for the incoming request
+    with tracer.start_as_current_span("POST /orders", context=ctx, kind=SpanKind.SERVER) as span:
+        span.set_attribute("http.method", "POST")
+        span.set_attribute("http.target", "/orders")
+        try:
+            order = request.json
+            ORDERS.append(order)
+            logger.info("Order created", extra={
+                "http.method": "POST",
+                "http.status_code": 201,
+                "service.name": "order-service",
+                "environment": "dev"
+            })
+            span.set_status(trace.Status(trace.StatusCode.OK))
+            return jsonify({"message": "Order placed"}), 201
+        except Exception as e:
+            logger.error("Failed to create order", exc_info=True, extra={
+                "http.method": "POST",
+                "http.status_code": 500,
+                "error.message": str(e),
+                "service.name": "order-service",
+                "environment": "dev"
+            })
+            span.set_status(trace.Status(trace.StatusCode.ERROR, description=str(e)))
+            return "Internal Server Error", 500
+        finally:
+            request_counter.add(1)
+            request_latency.record(time.time() - start)
 
 @app.route("/orders", methods=["GET"])
 def get_orders():
     start = time.time()
-    span = get_current_span()
-    try:
-        logger.info("Fetched orders", extra={
-            "http.method": "GET",
-            "http.status_code": 200,
-            "trace_id": format(span.get_span_context().trace_id, 'x'),
-            "span_id": format(span.get_span_context().span_id, 'x'),
-            "service.name": "order-service",
-            "environment": "dev"
-        })
-        return jsonify(ORDERS)
-    except Exception as e:
-        logger.error("Error fetching orders", exc_info=True, extra={
-            "http.method": "GET",
-            "http.status_code": 500,
-            "error.message": str(e),
-            "trace_id": format(span.get_span_context().trace_id, 'x'),
-            "span_id": format(span.get_span_context().span_id, 'x'),
-            "service.name": "order-service",
-            "environment": "dev"
-        })
-        return "Internal Server Error", 500
-    finally:
-        request_counter.add(1)
-        request_latency.record(time.time() - start)
+    # Extract context from incoming request headers
+    carrier = request.headers
+    ctx = extract(carrier)
+    # Manually start a span for the incoming request
+    with tracer.start_as_current_span("GET /orders", context=ctx, kind=SpanKind.SERVER) as span:
+        span.set_attribute("http.method", "GET")
+        span.set_attribute("http.target", "/orders")
+        try:
+            logger.info("Fetched orders", extra={
+                "http.method": "GET",
+                "http.status_code": 200,
+                "service.name": "order-service",
+                "environment": "dev"
+            })
+            span.set_status(trace.Status(trace.StatusCode.OK))
+            return jsonify(ORDERS)
+        except Exception as e:
+            logger.error("Error fetching orders", exc_info=True, extra={
+                "http.method": "GET",
+                "http.status_code": 500,
+                "error.message": str(e),
+                "service.name": "order-service",
+                "environment": "dev"
+            })
+            span.set_status(trace.Status(trace.StatusCode.ERROR, description=str(e)))
+            return "Internal Server Error", 500
+        finally:
+            request_counter.add(1)
+            request_latency.record(time.time() - start)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5003)

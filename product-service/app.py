@@ -25,12 +25,14 @@ from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs import LoggingHandler
 
 # Instrumentation
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
+# from opentelemetry.instrumentation.flask import FlaskInstrumentor # Removed for manual instrumentation example
+# from opentelemetry.instrumentation.requests import RequestsInstrumentor # Not applicable for this service
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 
 # Context
-from opentelemetry.trace import get_current_span
+from opentelemetry.trace import get_current_span, SpanKind
+from opentelemetry.propagate import extract, inject # extract is important for incoming requests
 
 # --- OpenTelemetry Setup ---
 resource = Resource(attributes={
@@ -58,7 +60,7 @@ request_latency = meter.create_histogram("http.server.request.duration", unit="s
 
 # Logging setup
 LoggingInstrumentor().instrument(set_logging_format=True)
-logger = logging.getLogger("frontend")
+logger = logging.getLogger("product-service") # Changed logger name for clarity
 logging.basicConfig(level=logging.INFO)
 
 # Set up OpenTelemetry logger provider
@@ -67,8 +69,8 @@ set_logger_provider(log_provider)
 
 # Export logs to OTEL Collector
 log_exporter = OTLPLogExporter(endpoint="http://otlp-daemon-service.opentelemetry.svc.cluster.local:4318/v1/logs")
-log_processor = BatchLogRecordProcessor(log_exporter)  # ✅ Updated name
-log_provider.add_log_record_processor(log_processor)   # ✅ method name also
+log_processor = BatchLogRecordProcessor(log_exporter)
+log_provider.add_log_record_processor(log_processor)
 
 # Bridge Python logging -> OpenTelemetry logs
 otel_handler = LoggingHandler(level=logging.NOTSET, logger_provider=log_provider)
@@ -85,31 +87,35 @@ PRODUCTS = [
 @app.route("/products")
 def get_products():
     start = time.time()
-    span = get_current_span()
-    try:
-        logger.info("Fetched product list", extra={
-            "http.method": "GET",
-            "http.status_code": 200,
-            "trace_id": format(span.get_span_context().trace_id, 'x'),
-            "span_id": format(span.get_span_context().span_id, 'x'),
-            "service.name": "product-service",
-            "environment": "dev"
-        })
-        return jsonify(PRODUCTS)
-    except Exception as e:
-        logger.error("Error fetching products", exc_info=True, extra={
-            "http.method": "GET",
-            "http.status_code": 500,
-            "error.message": str(e),
-            "trace_id": format(span.get_span_context().trace_id, 'x'),
-            "span_id": format(span.get_span_context().span_id, 'x'),
-            "service.name": "product-service",
-            "environment": "dev"
-        })
-        return "Internal Server Error", 500
-    finally:
-        request_counter.add(1)
-        request_latency.record(time.time() - start)
+    # Extract context from incoming request headers
+    carrier = request.headers
+    ctx = extract(carrier)
+    # Manually start a span for the incoming request
+    with tracer.start_as_current_span("GET /products", context=ctx, kind=SpanKind.SERVER) as span:
+        span.set_attribute("http.method", "GET")
+        span.set_attribute("http.target", "/products")
+        try:
+            logger.info("Fetched product list", extra={
+                "http.method": "GET",
+                "http.status_code": 200,
+                "service.name": "product-service",
+                "environment": "dev"
+            })
+            span.set_status(trace.Status(trace.StatusCode.OK))
+            return jsonify(PRODUCTS)
+        except Exception as e:
+            logger.error("Error fetching products", exc_info=True, extra={
+                "http.method": "GET",
+                "http.status_code": 500,
+                "error.message": str(e),
+                "service.name": "product-service",
+                "environment": "dev"
+            })
+            span.set_status(trace.Status(trace.StatusCode.ERROR, description=str(e)))
+            return "Internal Server Error", 500
+        finally:
+            request_counter.add(1)
+            request_latency.record(time.time() - start)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)

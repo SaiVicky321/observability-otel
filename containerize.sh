@@ -2,8 +2,8 @@
 
 # Set variables
 REGION="asia-south1"
-PROJECT_ID="gke-demo-466215" # project-id
-REPO_NAME="docker-repo-as1" # repo name
+PROJECT_ID="observability-project-466314" # project-id
+REPO_NAME="observability-images" # repo name
 BASE_IMAGE_NAME="observability-demo" # base image name
 
 # List of service folders

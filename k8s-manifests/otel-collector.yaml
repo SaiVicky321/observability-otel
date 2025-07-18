@@ -130,7 +130,8 @@ data:
       k8sattributes:
         auth_type: serviceAccount
         pod_association:
-          - from: connection
+          - sources:
+              - from: connection
         extract:
           metadata: # extracted from the pod
             - k8s.namespace.name

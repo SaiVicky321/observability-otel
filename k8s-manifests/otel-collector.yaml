@@ -126,9 +126,11 @@ data:
         attributes:
           - action: insert
             key: gcp.project.name
-            value: observability-project
+            value: observability-project-466314
       k8sattributes:
         auth_type: serviceAccount
+        pod_association:
+          - from: connection
         extract:
           metadata: # extracted from the pod
             - k8s.namespace.name

@@ -6,7 +6,7 @@ image:
 command:
   - "/otelcol-contrib"
   - "--config=/etc/otel/config.yaml"
-
+  - "--log-level=debug"
 
 serviceAccount:
   create: true
@@ -43,10 +43,10 @@ config: |
       auth_type: serviceAccount
       pod_association:
         - sources: # First try to use the value of the resource attribute k8s.pod.ip
+        - sources:
             - from: resource_attribute
-              name: k8s.pod.ip
-        # - sources:
-        #     - from: connection
+              name: k8s.pod.name
+            - from: connection
       extract:
         metadata:
           - k8s.namespace.name

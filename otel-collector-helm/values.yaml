@@ -42,8 +42,11 @@ config: |
     k8sattributes:
       auth_type: serviceAccount
       pod_association:
-        - sources:
-            - from: connection
+        - sources: # First try to use the value of the resource attribute k8s.pod.ip
+            - from: resource_attribute
+              name: k8s.pod.ip
+        # - sources:
+        #     - from: connection
       extract:
         metadata:
           - k8s.namespace.name

@@ -17,8 +17,8 @@ nodeSelector: {}
 
 affinity: {}
 
-# Added for increased logging verbosity of the OpenTelemetry Collector itself
-logLevel: debug
+# Set OpenTelemetry Collector's internal log level
+logLevel: info
 
 config: |
   receivers:
@@ -30,13 +30,16 @@ config: |
           endpoint: 0.0.0.0:4317
 
   processors:
-    batch: {}
+    batch:
+      verbosity: detailed
     resource:
+      verbosity: detailed
       attributes:
         - action: insert
           key: gcp.project.name
           value: observability-project-466314
     k8sattributes:
+      verbosity: detailed
       auth_type: serviceAccount
       pod_association:
         - sources:
@@ -50,6 +53,7 @@ config: |
 
   exporters:
     googlecloud:
+      verbosity: detailed
       project: "observability-project-466314"
       metric:
         prefix: "custom.googleapis.com"
@@ -58,20 +62,18 @@ config: |
       trace:
         attribute_mappings: []
       user_agent: "otel-collector"
-    debug:
-      verbosity: detailed
 
   service:
     pipelines:
       traces:
         receivers: [otlp]
         processors: [batch, resource, k8sattributes]
-        exporters: [googlecloud, debug]
+        exporters: [googlecloud]
       metrics:
         receivers: [otlp]
         processors: [batch, resource, k8sattributes]
-        exporters: [googlecloud, debug]
+        exporters: [googlecloud]
       logs:
         receivers: [otlp]
         processors: [batch, resource, k8sattributes]
-        exporters: [googlecloud, debug]
+        exporters: [googlecloud]

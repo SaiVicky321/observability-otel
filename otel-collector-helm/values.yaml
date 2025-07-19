@@ -9,6 +9,9 @@ serviceAccount:
   annotations:
     iam.gke.io/gcp-service-account: "gke-observability-sa@observability-project-466314.iam.gserviceaccount.com"
 
+debug:
+  enabled: false
+
 podAnnotations: {}
 
 tolerations: []
@@ -43,6 +46,20 @@ config: |
           - k8s.pod.name
           - k8s.node.name
           - k8s.container.name
+    filter/drop-otel-metrics:
+      metrics:
+        metric:
+          - 'resource.attributes["service.name"] == "otelcol-contrib"'
+
+    filter/drop-otel-logs:
+      logs:
+        log_record:
+          - 'attributes["service.name"] == "otelcol-contrib"'
+
+    filter/drop-otel-traces:
+      traces:
+        span:
+          - 'resource.attributes["service.name"] == "otelcol-contrib"'
 
   exporters:
     googlecloud:
@@ -56,16 +73,22 @@ config: |
       user_agent: "otel-collector"
 
   service:
+    telemetry:
+      metrics:
+        address: ""  # disables /metrics endpoint
+      resource:
+        disable: true  # disables injecting collector metadata
     pipelines:
       traces:
         receivers: [otlp]
-        processors: [batch, resource, k8sattributes]
+        processors: [filter/drop-otel-traces, batch, resource, k8sattributes]
         exporters: [googlecloud]
       metrics:
         receivers: [otlp]
-        processors: [batch, resource, k8sattributes]
+        processors: [filter/drop-otel-metrics, batch, resource, k8sattributes]
         exporters: [googlecloud]
       logs:
         receivers: [otlp]
-        processors: [batch, resource, k8sattributes]
+        processors: [filter/drop-otel-logs, batch, resource, k8sattributes]
         exporters: [googlecloud]
+

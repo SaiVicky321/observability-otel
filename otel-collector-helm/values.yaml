@@ -76,3 +76,6 @@ config: |
         receivers: [otlp]
         processors: [batch, resource, k8sattributes]
         exporters: [googlecloud]
+    telemetry:
+      logs:
+        level: "debug"

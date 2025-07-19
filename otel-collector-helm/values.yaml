@@ -9,14 +9,6 @@ serviceAccount:
   annotations:
     iam.gke.io/gcp-service-account: "gke-observability-sa@observability-project-466314.iam.gserviceaccount.com"
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 100m
-    memory: 256Mi
-
 podAnnotations: {}
 
 tolerations: []

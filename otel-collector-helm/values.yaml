@@ -27,16 +27,12 @@ config: |
           endpoint: 0.0.0.0:4317
 
   processors:
-    batch:
-      verbosity: detailed
     resource:
-      verbosity: detailed
       attributes:
         - action: insert
           key: gcp.project.name
           value: observability-project-466314
     k8sattributes:
-      verbosity: detailed
       auth_type: serviceAccount
       pod_association:
         - sources:
@@ -50,7 +46,6 @@ config: |
 
   exporters:
     googlecloud:
-      verbosity: detailed
       project: "observability-project-466314"
       metric:
         prefix: "custom.googleapis.com"

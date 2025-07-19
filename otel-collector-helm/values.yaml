@@ -3,6 +3,10 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+command:
+  - "/otelcontribcol"
+  - "--config=/conf/config.yaml"
+
 serviceAccount:
   create: true
   name: otel-collector-sa

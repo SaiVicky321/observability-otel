@@ -5,8 +5,7 @@ image:
 
 command:
   - "/otelcontribcol"
-  - "--config=/conf/config.yaml"
-args: []
+  - "--config=/etc/otel/config.yaml"
 
 
 serviceAccount:

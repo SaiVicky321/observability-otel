@@ -24,6 +24,9 @@ spec:
         - name: otel-collector
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - "/otelcontribcol"
+            - "--config=/etc/otel/config.yaml"
           ports:
             - containerPort: 4317
               name: otlp-grpc

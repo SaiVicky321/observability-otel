@@ -17,6 +17,9 @@ nodeSelector: {}
 
 affinity: {}
 
+# Added for increased logging verbosity of the OpenTelemetry Collector itself
+logLevel: debug
+
 config: |
   receivers:
     otlp:

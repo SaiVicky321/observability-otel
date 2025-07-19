@@ -1,5 +1,9 @@
 mode: daemonset
 
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: latest
+  
 config:
   receivers:
     otlp:

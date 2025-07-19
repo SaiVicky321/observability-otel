@@ -1,3 +1,5 @@
+mode: daemonset
+
 image:
   repository: otel/opentelemetry-collector-contrib
   tag: latest
@@ -9,86 +11,41 @@ serviceAccount:
   annotations:
     iam.gke.io/gcp-service-account: "gke-observability-sa@observability-project-466314.iam.gserviceaccount.com"
 
-debug:
-  enabled: false
-
-podAnnotations: {}
-
-tolerations: []
-
-nodeSelector: {}
-
-affinity: {}
-
 config: |
   receivers:
     otlp:
       protocols:
-        http:
-          endpoint: 0.0.0.0:4318
         grpc:
-          endpoint: 0.0.0.0:4317
+        http:
 
   processors:
-    resource:
-      attributes:
-        - action: insert
-          key: gcp.project.name
-          value: observability-project-466314
+    batch:
     k8sattributes:
-      auth_type: serviceAccount
-      pod_association:
-        - sources:
-            - from: connection
-      extract:
-        metadata:
-          - k8s.namespace.name
-          - k8s.pod.name
-          - k8s.node.name
-          - k8s.container.name
-    filter/drop-otel-metrics:
-      metrics:
-        metric:
-          - 'resource.attributes["service.name"] == "otelcol-contrib"'
-
-    filter/drop-otel-logs:
+    resource:
+    filter/drop-non-app-logs:
       logs:
-        log_record:
-          - 'attributes["service.name"] == "otelcol-contrib"'
-
-    filter/drop-otel-traces:
-      traces:
-        span:
-          - 'resource.attributes["service.name"] == "otelcol-contrib"'
+        include:
+          match_type: strict
+          resource_attributes:
+            - key: service.name
+              value: your-app-name  # ✅ Replace with your real app service.name
 
   exporters:
     googlecloud:
-      project: "observability-project-466314"
-      metric:
-        prefix: "custom.googleapis.com"
       log:
-        default_log_name: opentelemetry.io/collector-exported-log
-      trace:
-        attribute_mappings: []
-      user_agent: "otel-collector"
+        default_log_name: "application_logs"
+
+  extensions: {}  # disables all default extensions like health_check, zpages, etc.
 
   service:
     telemetry:
+      logs:
+        level: "none"
       metrics:
-        address: ""  # disables /metrics endpoint
-      resource:
-        disable: true  # disables injecting collector metadata
+        level: "none"
+
     pipelines:
-      traces:
-        receivers: [otlp]
-        processors: [filter/drop-otel-traces, batch, resource, k8sattributes]
-        exporters: [googlecloud]
-      metrics:
-        receivers: [otlp]
-        processors: [filter/drop-otel-metrics, batch, resource, k8sattributes]
-        exporters: [googlecloud]
       logs:
         receivers: [otlp]
-        processors: [filter/drop-otel-logs, batch, resource, k8sattributes]
+        processors: [filter/drop-non-app-logs, batch, resource, k8sattributes]
         exporters: [googlecloud]
-

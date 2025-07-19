@@ -1,10 +1,31 @@
-mode: daemonset
-
 image:
   repository: otel/opentelemetry-collector-contrib
   tag: latest
-  
-config:
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: otel-collector-sa
+  annotations:
+    iam.gke.io/gcp-service-account: "gke-observability-sa@observability-project-466314.iam.gserviceaccount.com"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+podAnnotations: {}
+
+tolerations: []
+
+nodeSelector: {}
+
+affinity: {}
+
+config: |
   receivers:
     otlp:
       protocols:
@@ -59,29 +80,3 @@ config:
         receivers: [otlp]
         processors: [batch, resource, k8sattributes]
         exporters: [googlecloud, debug]
-
-# Use your GSA with Workload Identity
-serviceAccount:
-  create: true
-  name: otel-collector-sa
-  annotations:
-    iam.gke.io/gcp-service-account: "gke-observability-sa@observability-project-466314.iam.gserviceaccount.com"
-
-# DaemonSet settings
-daemonset:
-  enabled: true
-
-# Update resources if needed
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 100m
-    memory: 256Mi
-
-# Add tolerations if needed for node types
-tolerations: []
-
-# Add node selector if required
-nodeSelector: {}

@@ -44,14 +44,14 @@ resource = Resource(attributes={
 trace.set_tracer_provider(TracerProvider(resource=resource))
 tracer = trace.get_tracer_provider().get_tracer(__name__)
 trace.get_tracer_provider().add_span_processor(
-    BatchSpanProcessor(OTLPSpanExporter(endpoint="http://localhost:4318/v1/traces"))
+    BatchSpanProcessor(OTLPSpanExporter(endpoint="http://otlp-daemon-service.opentelemetry.svc.cluster.local:4318/v1/traces"))
 )
 
 # Metrics setup
 metrics.set_meter_provider(
     MeterProvider(
         resource=resource,
-        metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter(endpoint="http://localhost:4318/v1/metrics"))]
+        metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter(endpoint="http://otlp-daemon-service.opentelemetry.svc.cluster.local:4318/v1/metrics"))]
     )
 )
 meter = metrics.get_meter(__name__)
@@ -76,7 +76,7 @@ log_provider = LoggerProvider(resource=resource)
 set_logger_provider(log_provider)
 
 # Export logs to OTEL Collector
-log_exporter = OTLPLogExporter(endpoint="http://localhost:4318/v1/logs")
+log_exporter = OTLPLogExporter(endpoint="http://otlp-daemon-service.opentelemetry.svc.cluster.local:4318/v1/logs")
 log_processor = BatchLogRecordProcessor(log_exporter)
 log_provider.add_log_record_processor(log_processor)
 

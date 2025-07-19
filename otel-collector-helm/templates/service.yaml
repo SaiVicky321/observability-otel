@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "otel-collector.fullname" . }}-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: otel-collector
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: otel-collector
+  ports:
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317

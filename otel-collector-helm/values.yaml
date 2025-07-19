@@ -4,7 +4,7 @@ image:
   pullPolicy: IfNotPresent
 
 command:
-  - "/otelcontribcol"
+  - "/otelcol-contrib"
   - "--config=/etc/otel/config.yaml"
 
 

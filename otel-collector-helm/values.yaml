@@ -17,9 +17,6 @@ nodeSelector: {}
 
 affinity: {}
 
-# Set OpenTelemetry Collector's internal log level
-logLevel: info
-
 config: |
   receivers:
     otlp:

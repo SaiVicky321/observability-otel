@@ -1,3 +1,53 @@
+# apiVersion: apps/v1
+# kind: DaemonSet
+# metadata:
+#   name: {{ include "otel-collector.fullname" . }}
+#   namespace: {{ .Release.Namespace }}
+#   labels:
+#     app.kubernetes.io/name: otel-collector
+# spec:
+#   selector:
+#     matchLabels:
+#       app.kubernetes.io/name: otel-collector
+#   template:
+#     metadata:
+#       labels:
+#         app.kubernetes.io/name: otel-collector
+#       annotations:
+#     spec: 
+#       serviceAccountName: {{ .Values.serviceAccount.name }}
+#       # In your DaemonSet spec:
+#       hostNetwork: true  # Allows seeing real pod IPs
+#       dnsPolicy: ClusterFirstWithHostNet
+# {{ toYaml .Values.podAnnotations | indent 8 }}
+#       tolerations: {{ toYaml .Values.tolerations | indent 6 }}
+#       nodeSelector: {{ toYaml .Values.nodeSelector | indent 6 }}
+#       affinity: {{ toYaml .Values.affinity | indent 6 }}
+#       containers:
+#         - name: otel-collector
+#           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+#           imagePullPolicy: {{ .Values.image.pullPolicy }}
+#           command:
+#             - "/otelcol-contrib"
+#             - "--config=/etc/otel/config.yaml"
+#           ports:
+#             - containerPort: 4317
+#               name: otlp-grpc
+#               protocol: TCP
+#             - containerPort: 4318
+#               name: otlp-http
+#               protocol: TCP
+#           resources:
+# {{ toYaml .Values.resources | indent 12 }}
+#           volumeMounts:
+#             - name: config
+#               mountPath: /etc/otel/config.yaml
+#               subPath: config.yaml
+#       volumes:
+#         - name: config
+#           configMap:
+#             name: {{ include "otel-collector.fullname" . }}-config
+
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -14,12 +64,19 @@ spec:
       labels:
         app.kubernetes.io/name: otel-collector
       annotations:
-{{ toYaml .Values.podAnnotations | indent 8 }}
+        # Important annotation for GKE (if applicable)
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
-      tolerations: {{ toYaml .Values.tolerations | indent 6 }}
-      nodeSelector: {{ toYaml .Values.nodeSelector | indent 6 }}
-      affinity: {{ toYaml .Values.affinity | indent 6 }}
+      hostNetwork: true  # Correct - preserves source IPs
+      dnsPolicy: ClusterFirstWithHostNet  # Correct
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
+      tolerations: {{ toYaml .Values.tolerations | indent 8 }}
+      nodeSelector: {{ toYaml .Values.nodeSelector | indent 8 }}
+      affinity: {{ toYaml .Values.affinity | indent 8 }}
       containers:
         - name: otel-collector
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -30,12 +87,20 @@ spec:
           ports:
             - containerPort: 4317
               name: otlp-grpc
+              hostPort: 4317  # Required when using hostNetwork
               protocol: TCP
             - containerPort: 4318
               name: otlp-http
+              hostPort: 4318  # Required when using hostNetwork
               protocol: TCP
+          env:
+            # Critical for k8sattributes processor
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           resources:
-{{ toYaml .Values.resources | indent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /etc/otel/config.yaml
@@ -44,6 +109,7 @@ spec:
         - name: config
           configMap:
             name: {{ include "otel-collector.fullname" . }}-config
+
 ---
 apiVersion: v1
 kind: ConfigMap

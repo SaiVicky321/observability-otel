@@ -34,26 +34,37 @@ config: |
 
   processors:
     batch: {}
+    resourcedetection:  # Add this processor
+      detectors: [gke]  # Automatically detects GKE resources
+      timeout: 5s
     resource:
       attributes:
         - action: insert
           key: gcp.project.name
           value: observability-project-466314
     k8sattributes:
+      passthrough: false  # Important for enrichment
+      filter:
+        node_from_env_var: KUBE_NODE_NAME  # Required for node filtering
       auth_type: serviceAccount
       pod_association:
-        - sources: # First try to use the value of the resource attribute k8s.pod.ip
-        - sources:
-            - from: resource_attribute
-              name: k8s.pod.name
-            - from: connection
+          # Try these association rules in order
+          - sources:
+              - from: connection
+          - sources:
+              - from: resource_attribute
+                name: ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
       extract:
         metadata:
           - k8s.namespace.name
           - k8s.pod.name
           - k8s.node.name
           - k8s.container.name
-
+          - k8s.deployment.name  # Add this
+          - k8s.pod.uid  # Add this for better correlation
   exporters:
     googlecloud:
       project: "observability-project-466314"
@@ -69,15 +80,15 @@ config: |
     pipelines:
       traces:
         receivers: [otlp]
-        processors: [batch, resource, k8sattributes]
+        processors: [resourcedetection, k8sattributes, resource, batch]  # Correct order
         exporters: [googlecloud]
       metrics:
         receivers: [otlp]
-        processors: [batch, resource, k8sattributes]
+        processors: [resourcedetection, k8sattributes, resource, batch]  # Correct order
         exporters: [googlecloud]
       logs:
         receivers: [otlp]
-        processors: [batch, resource, k8sattributes]
+        processors: [resourcedetection, k8sattributes, resource, batch]  # Correct order
         exporters: [googlecloud]
     telemetry:
       logs:

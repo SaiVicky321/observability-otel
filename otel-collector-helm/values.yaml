@@ -1,3 +1,5 @@
+mode: daemonset
+
 image:
   repository: otel/opentelemetry-collector-contrib
   tag: latest
@@ -31,11 +33,10 @@ config: |
         grpc:
           endpoint: 0.0.0.0:4317
 
-
   processors:
     batch: {}
-    resourcedetection:  # Add this processor
-      detectors: [gke]  # Automatically detects GKE resources
+    resourcedetection:
+      detectors: [gcp]
       timeout: 5s
     resource:
       attributes:
@@ -43,28 +44,51 @@ config: |
           key: gcp.project.name
           value: observability-project-466314
     k8sattributes:
-      passthrough: false  # Important for enrichment
+      passthrough: false
       filter:
-        node_from_env_var: KUBE_NODE_NAME  # Required for node filtering
+        node_from_env_var: KUBE_NODE_NAME
       auth_type: serviceAccount
       pod_association:
-          # Try these association rules in order
-          - sources:
-              - from: connection
-          - sources:
-              - from: resource_attribute
-                name: ip
-          - sources:
-              - from: resource_attribute
-                name: k8s.pod.ip
+        - sources:
+            - from: connection
+        - sources:
+            - from: resource_attribute
+              name: ip
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.ip
       extract:
         metadata:
           - k8s.namespace.name
           - k8s.pod.name
           - k8s.node.name
           - k8s.container.name
-          - k8s.deployment.name  # Add this
-          - k8s.pod.uid  # Add this for better correlation
+          - k8s.deployment.name
+          - k8s.pod.uid
+        annotations:
+          - key: my.annotation.key
+            from: pod
+        labels:
+          - key: app
+            from: pod
+    attributes/k8s_to_labels:
+      actions:
+        - key: k8s.namespace.name
+          from_attribute: k8s.namespace.name
+          action: insert
+        - key: k8s.pod.name
+          from_attribute: k8s.pod.name
+          action: insert
+        - key: k8s.node.name
+          from_attribute: k8s.node.name
+          action: insert
+        - key: k8s.deployment.name
+          from_attribute: k8s.deployment.name
+          action: insert
+        - key: k8s.pod.uid
+          from_attribute: k8s.pod.uid
+          action: insert
+
   exporters:
     googlecloud:
       project: "observability-project-466314"
@@ -75,21 +99,23 @@ config: |
       trace:
         attribute_mappings: []
       user_agent: "otel-collector"
+    debug:
+      verbosity: detailed
 
   service:
     pipelines:
       traces:
         receivers: [otlp]
-        processors: [resourcedetection, k8sattributes, resource, batch]  # Correct order
+        processors: [resourcedetection, k8sattributes, attributes/k8s_to_labels, resource, batch]
         exporters: [googlecloud]
       metrics:
         receivers: [otlp]
-        processors: [resourcedetection, k8sattributes, resource, batch]  # Correct order
+        processors: [resourcedetection, k8sattributes, attributes/k8s_to_labels, resource, batch]
         exporters: [googlecloud]
       logs:
         receivers: [otlp]
-        processors: [resourcedetection, k8sattributes, resource, batch]  # Correct order
-        exporters: [googlecloud]
+        processors: [resourcedetection, k8sattributes, attributes/k8s_to_labels, resource, batch]
+        exporters: [googlecloud, debug]
     telemetry:
       logs:
         level: "debug"

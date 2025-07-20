@@ -99,6 +99,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            # - name: GOOGLE_APPLICATION_CREDENTIALS
+            #   value: /var/run/secrets/google/service-account.json            
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
